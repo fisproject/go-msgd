@@ -5,8 +5,8 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/gonum/matrix/mat64"
 	"../"
+	"github.com/gonum/matrix/mat64"
 )
 
 func main() {
