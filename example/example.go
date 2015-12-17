@@ -6,6 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/gonum/matrix/mat64"
+	"../"
 )
 
 func main() {
@@ -14,15 +15,15 @@ func main() {
 	N := 200
 	batch_size := 10
 
-	w := []float64{randNormal(0, 1), randNormal(0, 1)}
-	b := randNormal(0, 1)
+	w := []float64{grad.RandNormal(0, 1), grad.RandNormal(0, 1)}
+	b := grad.RandNormal(0, 1)
 	eta := 0.2
 	errors := []float64{}
 
 	offset := 5.0
-	pts := makeNormalPoints(N/2, 0.0)
-	pts2 := makeNormalPoints(N/2, offset)
-	data := mat64.NewDense(N, 3, createData(pts, pts2))
+	pts := grad.MakeNormalPoints(N/2, 0.0)
+	pts2 := grad.MakeNormalPoints(N/2, offset)
+	data := mat64.NewDense(N, 3, grad.CreateData(pts, pts2))
 	// fmt.Println(mat64.Formatted(data))
 	//
 	// ⎡   0.3355783633826332     0.3075069223376545                      0⎤
@@ -30,8 +31,6 @@ func main() {
 	// ⎢   1.3714689033418805    -1.5036720020678844                      0⎥
 	// ⎢    5.792039934488384      5.151017687843955                      1⎥
 	// ...
-
-	plotSample(pts, pts2)
 
 	data_t := mat64.DenseCopyOf(data.T())
 	x_a := data_t.RawRowView(0)[0 : N/2]
@@ -52,15 +51,15 @@ func main() {
 			_x := mat64.DenseCopyOf(_x_t.T())
 			_c := data_t.RawRowView(2)[k : k+batch_size]
 
-			w_grad, b_grad := grad(_x, _c, w, b, batch_size)
+			w_grad, b_grad := grad.Grad(_x, _c, w, b, batch_size)
 
-			// Update param
+			// Update parameters
 			w[0] -= eta * w_grad[0]
 			w[1] -= eta * w_grad[1]
 			b -= eta * b_grad[0]
 
 			err_sum := 0.0
-			r := p_y_given_x(_x_a, w, b, N/2)
+			r := grad.P_y_given_x(_x_a, w, b, N/2)
 			for i := 0; i < len(r); i++ {
 				err := _c_a[i] - r[i]
 				err_sum += math.Abs(err)
@@ -73,7 +72,7 @@ func main() {
 		}
 	}
 
-	plotError(errors)
-
-	plotLine(pts, pts2, w, b)
+	grad.PlotSample(pts, pts2, "../img/sample-norm.png")
+	grad.PlotError(errors, "../img/errors.png")
+	grad.PlotLine(pts, pts2, w, b, "../img/line.png")
 }

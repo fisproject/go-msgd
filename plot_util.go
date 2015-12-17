@@ -1,4 +1,4 @@
-package main
+package grad
 
 import (
 	"math"
@@ -11,7 +11,7 @@ import (
 )
 
 // TODO : need shuffle
-func createData(d1, d2 plotter.XYs) (d []float64) {
+func CreateData(d1, d2 plotter.XYs) (d []float64) {
 	for i := range d1 {
 		d = append(d, d1[i].X)
 		d = append(d, d1[i].Y)
@@ -24,16 +24,16 @@ func createData(d1, d2 plotter.XYs) (d []float64) {
 	return d
 }
 
-func randNormal(mu, sigma float64) float64 {
+func RandNormal(mu, sigma float64) float64 {
 	z := math.Sqrt(-2.0*math.Log(rand.Float64())) * math.Sin(2.0*math.Pi*rand.Float64())
 	return sigma*z + mu
 }
 
-func makeNormalPoints(n int, offset float64) plotter.XYs {
+func MakeNormalPoints(n int, offset float64) plotter.XYs {
 	pts := make(plotter.XYs, n)
 	for i := range pts {
-		pts[i].X = randNormal(0, 1) + offset
-		pts[i].Y = randNormal(0, 1) + offset
+		pts[i].X = RandNormal(0, 1) + offset
+		pts[i].Y = RandNormal(0, 1) + offset
 	}
 	return pts
 }
@@ -56,7 +56,7 @@ func makeLine(x, y []float64) plotter.XYs {
 	return pts
 }
 
-func plotSample(pts, pts2 plotter.XYs) {
+func PlotSample(pts, pts2 plotter.XYs, path string) {
 	p, err := plot.New()
 	if err != nil {
 		panic(err)
@@ -70,12 +70,12 @@ func plotSample(pts, pts2 plotter.XYs) {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, "img/sample-norm.png"); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, path); err != nil {
 		panic(err)
 	}
 }
 
-func plotError(errors []float64) {
+func PlotError(errors []float64, path string) {
 	p, err := plot.New()
 	if err != nil {
 		panic(err)
@@ -89,12 +89,12 @@ func plotError(errors []float64) {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, "img/errors.png"); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, path); err != nil {
 		panic(err)
 	}
 }
 
-func plotLine(pts, pts2 plotter.XYs, w []float64, b float64) {
+func PlotLine(pts, pts2 plotter.XYs, w []float64, b float64, path string) {
 	p, err := plot.New()
 	if err != nil {
 		panic(err)
@@ -123,7 +123,7 @@ func plotLine(pts, pts2 plotter.XYs, w []float64, b float64) {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, "img/line.png"); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, path); err != nil {
 		panic(err)
 	}
 }

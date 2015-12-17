@@ -1,4 +1,4 @@
-package main
+package grad
 
 import (
 	"math"
@@ -6,6 +6,7 @@ import (
 	"github.com/gonum/matrix/mat64"
 )
 
+// Loss function
 func sigmoid(x float64) (y float64) {
 	return 1.0 / (1.0 + math.Exp(-1*x))
 }
@@ -40,8 +41,8 @@ func mulEx(a *mat64.Dense, b []float64, rows int) (r []float64) {
 	return r
 }
 
-// calc likelihood
-func p_y_given_x(x *mat64.Dense, w []float64, b float64, s int) (l []float64) {
+// objective function (likelihood) : p(y|x) = 1 / 1 + exp(-y w x)
+func P_y_given_x(x *mat64.Dense, w []float64, b float64, s int) (l []float64) {
 	m := mulEx(x, w, s)
 
 	z := []float64{}
@@ -49,15 +50,16 @@ func p_y_given_x(x *mat64.Dense, w []float64, b float64, s int) (l []float64) {
 		z = append(z, m[i]+b)
 	}
 
+	// Sum
 	for i := 0; i < len(z); i++ {
 		l = append(l, sigmoid(z[i]))
 	}
 	return l
 }
 
-func grad(x *mat64.Dense, c, w []float64, b float64, s int) (w_grad, b_grad []float64) {
+func Grad(x *mat64.Dense, c, w []float64, b float64, s int) (w_grad, b_grad []float64) {
 	errs := []float64{}
-	l := p_y_given_x(x, w, b, s)
+	l := P_y_given_x(x, w, b, s)
 
 	for i := 0; i < len(c); i++ {
 		errs = append(errs, c[i]-l[i]) // error = label - likelihood
