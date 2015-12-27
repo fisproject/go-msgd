@@ -70,7 +70,7 @@ func PlotSample(pts, pts2 plotter.XYs, path string) {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, path); err != nil {
+	if err := p.Save(10*vg.Inch, 10*vg.Inch, path); err != nil {
 		panic(err)
 	}
 }
@@ -89,7 +89,7 @@ func PlotError(errors []float64, path string) {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, path); err != nil {
+	if err := p.Save(10*vg.Inch, 10*vg.Inch, path); err != nil {
 		panic(err)
 	}
 }
@@ -123,7 +123,7 @@ func PlotLine(pts, pts2 plotter.XYs, w []float64, b float64, path string) {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, path); err != nil {
+	if err := p.Save(10*vg.Inch, 10*vg.Inch, path); err != nil {
 		panic(err)
 	}
 }

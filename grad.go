@@ -44,12 +44,12 @@ func Grad(x *mat64.Dense, c, w []float64, b float64, s int) (w_grad, b_grad []fl
 
 	w_grad = append(w_grad, -1*mat64.Dot(x.ColView(0), e))
 	w_grad = append(w_grad, -1*mat64.Dot(x.ColView(1), e))
-	b_grad = append(b_grad, -1*mean(errs))
+	b_grad = append(b_grad, -1*Mean(errs))
 
 	return w_grad, b_grad
 }
 
-func mean(x []float64) (r float64) {
+func Mean(x []float64) (r float64) {
 	for j := 0; j < len(x); j++ {
 		r += x[j]
 	}
@@ -66,7 +66,7 @@ func mulMulti(a *mat64.Dense, b []float64, rows int) (r []float64) {
 	m2.Mul(a.ColView(1), b2)
 
 	for i := 0; i < rows; i++ {
-		r = append(r, m.ColView(0).At(i,0)+m2.ColView(0).At(i,0))
+		r = append(r, m.ColView(0).At(i, 0)+m2.ColView(0).At(i, 0))
 	}
 	return r
 }
