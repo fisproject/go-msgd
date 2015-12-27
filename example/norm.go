@@ -32,47 +32,53 @@ func main() {
 	// ⎢    5.792039934488384      5.151017687843955                      1⎥
 	// ...
 
-	data_t := mat64.DenseCopyOf(data.T())
-	x_a := data_t.RawRowView(0)[0 : N/2]
-	x_a = append(x_a, data_t.RawRowView(1)[0:N/2]...)
-	x_a_t := mat64.NewDense(2, N/2, x_a)
-	_x_a := mat64.DenseCopyOf(x_a_t.T())
-	_c_a := data_t.RawRowView(2)[0 : N/2]
+	// Divide Dataset
+	x, y := DivideData(data, 0, N/2)
 
 	//  Minibatch SGD (minibatch stochastic gradient descent)
 	for i := 0; i < 10; i++ {
 		for j := 0; j < N/batch_size; j++ {
 			k := j * batch_size
 
-			x := data_t.RawRowView(0)[k : k+batch_size]
-			x = append(x, data_t.RawRowView(1)[k:k+batch_size]...)
+			x_part, y_part := DivideData(data, k, batch_size)
 
-			_x_t := mat64.NewDense(2, batch_size, x)
-			_x := mat64.DenseCopyOf(_x_t.T())
-			_c := data_t.RawRowView(2)[k : k+batch_size]
-
-			w_grad, b_grad := grad.Grad(_x, _c, w, b, batch_size)
+			w_grad, b_grad := grad.Grad(x_part, y_part, w, b, batch_size)
 
 			// Update parameters
 			w[0] -= eta * w_grad[0]
 			w[1] -= eta * w_grad[1]
 			b -= eta * b_grad[0]
 
+			r := grad.P_y_given_x(x, w, b, N/2)
+
 			err_sum := 0.0
-			r := grad.P_y_given_x(_x_a, w, b, N/2)
 			for i := 0; i < len(r); i++ {
-				err := _c_a[i] - r[i]
-				err_sum += math.Abs(err)
+				err_sum += math.Abs(y[i] - r[i])
 			}
-			errors = append(errors, err_sum/float64(len(_c_a)))
+
+			errors = append(errors, err_sum/float64(len(y)))
 
 			fmt.Println("iter : i =", i, "j =", j)
 			fmt.Println("weight =", w, "b =", b)
-			fmt.Println("error =", err_sum/float64(len(_c_a)))
+			fmt.Println("error =", err_sum/float64(len(y)))
 		}
 	}
 
 	grad.PlotSample(pts, pts2, "../img/sample-norm.png")
 	grad.PlotError(errors, "../img/errors.png")
 	grad.PlotLine(pts, pts2, w, b, "../img/line.png")
+}
+
+func DivideData(data *mat64.Dense, start, end int) (*mat64.Dense, []float64){
+	_x := []float64{}
+	y := []float64{}
+
+	for i := start; i < (start + end); i++ {
+		_x = append(_x, data.ColView(0).At(i,0)) // x1
+		_x = append(_x, data.ColView(1).At(i,0)) // x2
+		y = append(y, data.ColView(2).At(i,0)) // label
+	}
+	x := mat64.NewDense(end, 2, _x) // x1 and x2
+
+	return x, y
 }
