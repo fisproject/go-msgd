@@ -19,7 +19,8 @@ func main() {
 	rand.Seed(int64(0))
 
 	N := 10000
-	batch_size := 20
+	goroutines := 4
+	batch_size := 10
 
 	offset := 5.0
 	pts := grad.MakeNormalPoints(N, 0.0)
@@ -42,8 +43,8 @@ func main() {
 
 	start := time.Now().UnixNano()
 
-	receiver := worker(N, batch_size, data, x, y)
-	for i := 0; i < batch_size; i++ {
+	receiver := worker(N, goroutines, batch_size, data, x, y)
+	for i := 0; i < goroutines; i++ {
 		r := <-receiver
 		w1 = append(w1, r[0])
 		w2 = append(w2, r[1])
@@ -57,28 +58,29 @@ func main() {
 	fmt.Println("mean of weights =", w_mean, "mean of b =", b_mean)
 
 	end := time.Now().UnixNano()
-
 	fmt.Println(float64(end-start)/float64(1000000), "ms") // 18968.966233 ms
 
 	grad.PlotSample(pts, pts2, "../img/msgd-norm-goroutine.png")
 	grad.PlotLine(pts, pts2, w_mean, b_mean, "../img/msgd-line-goroutine.png")
 }
 
-func worker(N, batch_size int, data, x *mat64.Dense, y []float64) <-chan []float64 {
+func worker(N, goroutines, batch_size int, data, x *mat64.Dense, y []float64) <-chan []float64 {
 	receiver := make(chan []float64)
 
-	for i := 0; i < batch_size; i++ {
+	for i := 0; i < goroutines; i++ {
 		go func(i int) {
-			w := []float64{grad.RandNormal(0, 1), grad.RandNormal(0, 1)}
-			b := grad.RandNormal(0, 1)
+			w := []float64{0.0, 0.0}
+			b := 0.0
 			eta := 0.2
 			errors := []float64{}
 
-			//  Minibatch SGD (minibatch stochastic gradient descent)
-			k := N / batch_size
-			for j := i * k; j < i*k+k; j++ {
-				x_part, y_part := DivideData(data, j, batch_size)
+			offset := i * N/goroutines
 
+			//  Minibatch SGD (minibatch stochastic gradient descent)
+			for j := 0; j < N/ (goroutines * batch_size); j++ {
+				x_part, y_part := DivideData(data, j*batch_size+offset, batch_size)
+				
+				// batch processing
 				w_grad, b_grad := grad.Grad(x_part, y_part, w, b, batch_size)
 
 				// Update parameters
@@ -86,19 +88,18 @@ func worker(N, batch_size int, data, x *mat64.Dense, y []float64) <-chan []float
 				w[1] -= eta * w_grad[1]
 				b -= eta * b_grad[0]
 
-				r := grad.P_y_given_x(x, w, b, N)
-
+				yhat := grad.P_y_given_x(x, w, b, N)
 				err_sum := 0.0
-				for i := 0; i < len(r); i++ {
-					err_sum += math.Abs(y[i] - r[i])
+				for k := 0; k < len(yhat); k++ {
+					err_sum += math.Abs(y[k] - yhat[k])
 				}
 
-				errors = append(errors, err_sum/float64(len(y)))
+				errors = append(errors, err_sum/float64(len(yhat)))
 			}
 
-			fmt.Println("iter =", i, "size =", k)
+			fmt.Println("goroutine =", i, "batch-size =", batch_size)
 			fmt.Println("weight =", w, "b =", b)
-			fmt.Println("final error =", errors[k-1])
+			fmt.Println("final error =", errors[ N/ (goroutines * batch_size)-1])
 
 			res := []float64{w[0], w[1], b}
 			receiver <- res
@@ -108,16 +109,16 @@ func worker(N, batch_size int, data, x *mat64.Dense, y []float64) <-chan []float
 	return receiver
 }
 
-func DivideData(data *mat64.Dense, start, end int) (*mat64.Dense, []float64) {
+func DivideData(data *mat64.Dense, start, size int) (*mat64.Dense, []float64) {
 	_x := []float64{}
 	y := []float64{}
 
-	for i := start; i < (start + end); i++ {
+	for i := start; i < (start + size); i++ {
 		_x = append(_x, data.ColView(0).At(i, 0)) // x1
 		_x = append(_x, data.ColView(1).At(i, 0)) // x2
 		y = append(y, data.ColView(2).At(i, 0))   // label
 	}
-	x := mat64.NewDense(end, 2, _x) // x1 and x2
+	x := mat64.NewDense(size, 2, _x) // x1 and x2
 
 	return x, y
 }

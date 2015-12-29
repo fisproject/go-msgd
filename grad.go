@@ -17,28 +17,22 @@ func unSigmoid(x float64) (y float64) {
 }
 
 // objective function (likelihood) : p(y|x) = 1 / 1 + exp(-y w x)
-func P_y_given_x(x *mat64.Dense, w []float64, b float64, s int) (l []float64) {
-	m := mulMulti(x, w, s)
+func P_y_given_x(x *mat64.Dense, w []float64, b float64, s int) (yhat []float64) {
+	m := mulMulti(x, w, s) // like numpy.dot()
 
-	z := []float64{}
 	for i := 0; i < len(m); i++ {
-		z = append(z, m[i]+b)
+		yhat = append(yhat, sigmoid(m[i]+b))
 	}
-
-	// Sum
-	for i := 0; i < len(z); i++ {
-		l = append(l, sigmoid(z[i]))
-	}
-	return l
+	return yhat
 }
 
-func Grad(x *mat64.Dense, c, w []float64, b float64, s int) (w_grad, b_grad []float64) {
+func Grad(x *mat64.Dense, y, w []float64, b float64, s int) (w_grad, b_grad []float64) {
 	errs := []float64{}
 
-	l := P_y_given_x(x, w, b, s)
+	yhat := P_y_given_x(x, w, b, s)
 
-	for i := 0; i < len(c); i++ {
-		errs = append(errs, c[i]-l[i]) // error = label - loss
+	for i := 0; i < len(y); i++ {
+		errs = append(errs, y[i]-yhat[i]) // error = label - pred
 	}
 	e := mat64.NewDense(s, 1, errs)
 

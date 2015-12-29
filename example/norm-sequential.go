@@ -14,7 +14,7 @@ func main() {
 	rand.Seed(int64(0))
 
 	N := 10000
-	batch_size := 10
+	batch_size := 10 // batch_size=1 equals SGD
 
 	w := []float64{grad.RandNormal(0, 1), grad.RandNormal(0, 1)}
 	b := grad.RandNormal(0, 1)
@@ -39,32 +39,29 @@ func main() {
 	start := time.Now().UnixNano()
 
 	//  Minibatch SGD (minibatch stochastic gradient descent)
-	for i := 0; i < batch_size; i++ {
-		k := N / batch_size
-		for j := i * k; j < i*k+k; j++ {
+	for i := 0; i < N/batch_size; i++ {
+		x_part, y_part := DivideData(data, i*batch_size, batch_size)
 
-			x_part, y_part := DivideData(data, j, batch_size)
+		// batch processing
+		w_grad, b_grad := grad.Grad(x_part, y_part, w, b, batch_size)
 
-			w_grad, b_grad := grad.Grad(x_part, y_part, w, b, batch_size)
+		// Update parameters
+		w[0] -= eta * w_grad[0]
+		w[1] -= eta * w_grad[1]
+		b -= eta * b_grad[0]
 
-			// Update parameters
-			w[0] -= eta * w_grad[0]
-			w[1] -= eta * w_grad[1]
-			b -= eta * b_grad[0]
-
-			r := grad.P_y_given_x(x, w, b, N)
-
-			err_sum := 0.0
-			for i := 0; i < len(r); i++ {
-				err_sum += math.Abs(y[i] - r[i])
-			}
-
-			errors = append(errors, err_sum/float64(len(y)))
+		yhat := grad.P_y_given_x(x, w, b, N)
+		err_sum := 0.0
+		for i := 0; i < len(yhat); i++ {
+			err_sum += math.Abs(y[i] - yhat[i])
 		}
-		fmt.Println("iter =", i, "size =", k)
-		fmt.Println("weight =", w, "b =", b)
-		fmt.Println("final error =", errors[((i+1)*k)-1])
+
+		errors = append(errors, err_sum/float64(len(yhat)))
 	}
+
+	fmt.Println("length-of-data =", N, "batch-size =", batch_size)
+	fmt.Println("weight =", w, "b =", b)
+	fmt.Println("final error =", errors[ N/ batch_size-1])
 
 	end := time.Now().UnixNano()
 	fmt.Println(float64(end-start)/float64(1000000), "ms") // 547.321513 ms
@@ -74,16 +71,16 @@ func main() {
 	grad.PlotLine(pts, pts2, w, b, "../img/msgd-line-seq.png")
 }
 
-func DivideData(data *mat64.Dense, start, end int) (*mat64.Dense, []float64) {
+func DivideData(data *mat64.Dense, start, size int) (*mat64.Dense, []float64) {
 	_x := []float64{}
 	y := []float64{}
 
-	for i := start; i < (start + end); i++ {
+	for i := start; i < (start + size); i++ {
 		_x = append(_x, data.ColView(0).At(i, 0)) // x1
 		_x = append(_x, data.ColView(1).At(i, 0)) // x2
 		y = append(y, data.ColView(2).At(i, 0))   // label
 	}
-	x := mat64.NewDense(end, 2, _x) // x1 and x2
+	x := mat64.NewDense(size, 2, _x) // x1 and x2
 
 	return x, y
 }
