@@ -15,11 +15,9 @@ func main() {
 
 	N := 10000
 	batch_size := 10 // batch_size=1 equals SGD
-
-	w := []float64{grad.RandNormal(0, 1), grad.RandNormal(0, 1)}
-	b := grad.RandNormal(0, 1)
 	eta := 0.2
-	errors := []float64{}
+
+	g := grad.NewGrad(eta)
 
 	offset := 5.0
 	pts := grad.MakeNormalPoints(N, 0.0)
@@ -34,53 +32,49 @@ func main() {
 	// ...
 
 	// Divide Dataset
-	x, y := DivideData(data, 0, N)
+	x, y := grad.DivideData(data, 0, N)
 
 	start := time.Now().UnixNano()
 
 	//  Minibatch SGD (minibatch stochastic gradient descent)
 	for i := 0; i < N/batch_size; i++ {
-		x_part, y_part := DivideData(data, i*batch_size, batch_size)
+		x_part, y_part := grad.DivideData(data, i*batch_size, batch_size)
 
 		// batch processing
-		w_grad, b_grad := grad.Grad(x_part, y_part, w, b, batch_size)
+		w_grad, b_grad := g.Grad(x_part, y_part, batch_size)
 
 		// Update parameters
-		w[0] -= eta * w_grad[0]
-		w[1] -= eta * w_grad[1]
-		b -= eta * b_grad[0]
+		g.Weight[0] -= eta * w_grad[0]
+		g.Weight[1] -= eta * w_grad[1]
+		g.Intercept -= eta * b_grad[0]
 
-		yhat := grad.P_y_given_x(x, w, b, N)
+		yhat := g.CalcLikeLihood(x, N)
 		err_sum := 0.0
 		for i := 0; i < len(yhat); i++ {
 			err_sum += math.Abs(y[i] - yhat[i])
 		}
 
-		errors = append(errors, err_sum/float64(len(yhat)))
+		g.Errors = append(g.Errors, err_sum/float64(len(yhat)))
 	}
 
 	fmt.Println("length-of-data =", N, "batch-size =", batch_size)
-	fmt.Println("weight =", w, "b =", b)
-	fmt.Println("final error =", errors[ N/ batch_size-1])
+	fmt.Println("weight =", g.Weight, "intercept =", g.Intercept)
+	fmt.Println("final error =", g.Errors[N/batch_size-1])
 
 	end := time.Now().UnixNano()
-	fmt.Println(float64(end-start)/float64(1000000), "ms") // 547.321513 ms
+	fmt.Println(float64(end-start)/float64(1000000), "ms")
 
-	grad.PlotSample(pts, pts2, "../img/msgd-norm-seq.png")
-	grad.PlotError(errors, "../img/msgd-trace-error-seq.png")
-	grad.PlotLine(pts, pts2, w, b, "../img/msgd-line-seq.png")
-}
-
-func DivideData(data *mat64.Dense, start, size int) (*mat64.Dense, []float64) {
-	_x := []float64{}
-	y := []float64{}
-
-	for i := start; i < (start + size); i++ {
-		_x = append(_x, data.ColView(0).At(i, 0)) // x1
-		_x = append(_x, data.ColView(1).At(i, 0)) // x2
-		y = append(y, data.ColView(2).At(i, 0))   // label
+	// Plot result
+	err := grad.PlotSample(pts, pts2, "../img/msgd-norm-seq.png")
+	if err != nil {
+		panic(err)
 	}
-	x := mat64.NewDense(size, 2, _x) // x1 and x2
-
-	return x, y
+	err = grad.PlotErrors(g.Errors, "../img/msgd-trace-error-seq.png")
+	if err != nil {
+		panic(err)
+	}
+	err = grad.PlotLine(pts, pts2, g.Weight, g.Intercept, "../img/msgd-line-seq.png")
+	if err != nil {
+		panic(err)
+	}
 }
